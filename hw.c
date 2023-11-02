@@ -74,6 +74,7 @@ void read(int vAddress){
         pageFault(vAddress);
         p_table[virtual_page].valid_bit = 1;
         p_table[virtual_page].page_num = main_mem_counter;
+        main_mem_counter++;
     }
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
     //gets the address from the main memory page and reads it out
@@ -90,11 +91,11 @@ void write(int vAddress, int num){
         pageFault(vAddress);
         p_table[virtual_page].valid_bit = 1;
         p_table[virtual_page].page_num = main_mem_counter;
+        main_mem_counter++;
     }
     p_table[virtual_page].dirty_bit = 1; //since we are writing into it
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
     main_memory[p_table[virtual_page].page_num*8 + main_memory_address].data = num;
-    main_mem_counter++;
 }
 
 //main memory has 4 pages, each page 8 addresses
@@ -105,10 +106,15 @@ void write(int vAddress, int num){
 void showmain(int ppn){
     // 0 + 8(ppn) = start value
     //not sure if this is right
-    int start = 8 * (ppn);
-    for(int i = start; i<start+8; i++)
-    {
-        printf("%d: %d\n", main_memory[i].address, main_memory[i].data);
+    if(ppn>= 0 && ppn<=3){
+        int start = 8 * (ppn);
+        for(int i = start; i<start+8; i++)
+        {
+            printf("%d: %d\n", main_memory[i].address, main_memory[i].data);
+        }
+    }
+    else{
+        printf("Invalid: Unable to print page %d from main memory\n", ppn);
     }
 }
 
