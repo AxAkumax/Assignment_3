@@ -50,7 +50,14 @@ void pageFault(int vAddress){
         //based on whether FIFO or LRU
         //  1) we update the main_memory page
         //  2) update the virtual page we last used
-        
+        if(fifo)
+        {
+            
+        }
+        else if(lru)
+        {
+
+        }
     }
 }
 
@@ -65,18 +72,29 @@ void read(int vAddress){
         //this means that the page hasn't been loaded from main_memory
         //causes page fault 
         pageFault(vAddress);
+        p_table[virtual_page].valid_bit = 1;
+        p_table[virtual_page].page_num = main_mem_counter;
     }
-    p_table[virtual_page].valid_bit = 1;
-    p_table[virtual_page].page_num = main_mem_counter;
-    int main_memory_address = vAddress - p_table[virtual_page].page_num; //page_num gives us starting page num
+    int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
     //gets the address from the main memory page and reads it out
-    int value = main_memory[main_mem_counter*8 + main_memory_address].data;
+    int value = main_memory[p_table[virtual_page].page_num*8 + main_memory_address].data;
     printf("%d\n", value);
-    main_mem_counter++;
 }
 
 void write(int vAddress, int num){
-    printf("WRITE vAddress: %d, num: %d\n", vAddress, num);
+    int virtual_page = vAddress/8;
+    if (p_table[virtual_page].valid_bit==0)
+    {
+        //this means that the page hasn't been loaded from main_memory
+        //causes page fault, we can't write into memory
+        pageFault(vAddress);
+        p_table[virtual_page].valid_bit = 1;
+        p_table[virtual_page].page_num = main_mem_counter;
+    }
+    p_table[virtual_page].dirty_bit = 1; //since we are writing into it
+    int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
+    main_memory[p_table[virtual_page].page_num*8 + main_memory_address].data = num;
+    main_mem_counter++;
 }
 
 //main memory has 4 pages, each page 8 addresses
