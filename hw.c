@@ -14,6 +14,7 @@ struct PageTable p_table[16];
 
 int fifoCounter = 0;
 int fifo = 0, lru = 0;
+int main_mem_counter = 0; //keeps track of which main memory page to load to for given virtual address
 
 //Main calls this so we can initialize whatever we need here
 //Unsure if this is correct
@@ -27,6 +28,7 @@ void init(){
     //initialize virtual memory (idk what to do)
     for(int i = 0; i < 32; i++){
         virtual_memory[i].address = -1;
+        main_memory[i].address = i;
         main_memory[i].data = -1;
     }
 
@@ -39,13 +41,38 @@ void init(){
     }
 } 
 
-void pageFault(){
+
+void pageFault(int vAddress){
     printf("A Page Fault Has Occurred\n");
+    //all pages have been loaded, we use 
+    if(main_mem_counter>3){
+        //assuming that we incrementing after
+        //based on whether FIFO or LRU
+        //  1) we update the main_memory page
+        //  2) update the virtual page we last used
+        
+    }
 }
 
-//right now input is routed to call these functions, these print statements are for your understanding
+// right now input is routed to call these functions, these print statements are for your understanding
+// page fault handles page table information and main memory allocation 
+// we convert the virtual address to a virtual page number by dividing it by 8, and based on the page, we check
+// if it is loaded in memory, if not, then
 void read(int vAddress){
-    printf("READ vAddress %d\n", vAddress);
+   int virtual_page = vAddress/8;
+   if (p_table[virtual_page].valid_bit==0)
+    {
+        //this means that the page hasn't been loaded from main_memory
+        //causes page fault 
+        pageFault(vAddress);
+    }
+    p_table[virtual_page].valid_bit = 1;
+    p_table[virtual_page].page_num = main_mem_counter;
+    int main_memory_address = vAddress - p_table[virtual_page].page_num; //page_num gives us starting page num
+    //gets the address from the main memory page and reads it out
+    int value = main_memory[main_mem_counter*8 + main_memory_address].data;
+    printf("%d\n", value);
+    main_mem_counter++;
 }
 
 void write(int vAddress, int num){
@@ -58,13 +85,12 @@ void write(int vAddress, int num){
 // 16 - 23: 2
 // 24 - 31 : 3 
 void showmain(int ppn){
-    printf("SHOWMAIN ppn %d\n", ppn);
     // 0 + 8(ppn) = start value
     //not sure if this is right
     int start = 8 * (ppn);
     for(int i = start; i<start+8; i++)
     {
-        printf("%d: %d", main_memory[i].address, main_memory[i].data);
+        printf("%d: %d\n", main_memory[i].address, main_memory[i].data);
     }
 }
 
