@@ -12,6 +12,7 @@ struct Memory main_memory[32];
 struct Memory virtual_memory[128];
 struct PageTable p_table[16];
 
+int fifoCounter = 0;
 int fifo = 0, lru = 0;
 
 //Main calls this so we can initialize whatever we need here
@@ -25,7 +26,7 @@ void init(){
 
     //initialize virtual memory (idk what to do)
     for(int i = 0; i < 32; i++){
-        // virtual_memory[i].address = i;
+        virtual_memory[i].address = -1;
         main_memory[i].data = -1;
     }
 
