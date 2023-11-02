@@ -51,8 +51,20 @@ void write(int vAddress, int num){
     printf("WRITE vAddress: %d, num: %d\n", vAddress, num);
 }
 
+//main memory has 4 pages, each page 8 addresses
+// 0 - 7 : 0
+// 8 - 15: 1
+// 16 - 23: 2
+// 24 - 31 : 3 
 void showmain(int ppn){
     printf("SHOWMAIN ppn %d\n", ppn);
+    // 0 + 8(ppn) = start value
+    //not sure if this is right
+    int start = 8(ppn);
+    for(int i = start; i<start+8; i++)
+    {
+        printf("%d: %d", main_memory[i].address, main_memory[i].data);
+    }
 }
 
 void showptable(){ //DONE
