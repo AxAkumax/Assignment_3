@@ -60,7 +60,7 @@ void showmain(int ppn){
     printf("SHOWMAIN ppn %d\n", ppn);
     // 0 + 8(ppn) = start value
     //not sure if this is right
-    int start = 8(ppn);
+    int start = 8 * (ppn);
     for(int i = start; i<start+8; i++)
     {
         printf("%d: %d", main_memory[i].address, main_memory[i].data);
