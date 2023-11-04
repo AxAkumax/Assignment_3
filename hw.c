@@ -19,15 +19,14 @@ int main_mem_counter = 0; //keeps track of which main memory page to load to for
 //Main calls this so we can initialize whatever we need here
 //Unsure if this is correct
 void init(){
-    //Initialize main_memory
+    //Initialize virtual_memory
     for(int i = 0; i < 128; i++){
         virtual_memory[i].address = i;
         virtual_memory[i].data = -1;
     }
 
-    //initialize virtual memory (idk what to do)
+    //initialize main memory
     for(int i = 0; i < 32; i++){
-        virtual_memory[i].address = -1;
         main_memory[i].address = i;
         main_memory[i].data = -1;
     }
@@ -41,24 +40,66 @@ void init(){
     }
 } 
 
+//UNUSED DEBUG FUNCTION THAT PRINTS FIRST 51 items of virtual memory
+void printVMemory(){
+    for(int i = 0; i < 51; i++){
+        printf("%d: %d\n", virtual_memory[i].address, virtual_memory[i].data);
+    }
+}
 
-void pageFault(int vAddress){
+
+void pageFault(int virtual_page){
     printf("A Page Fault Has Occurred\n");
+    int main_mem_page = main_mem_counter;
     //all pages have been loaded, we use 
     if(main_mem_counter>3){
         //assuming that we incrementing after
         //based on whether FIFO or LRU
         //  1) we update the main_memory page
         //  2) update the virtual page we last used
-        if(fifo)
+
+        //All that we need to implement fifo and lru is the current main memory page that we need to evict and replace
+        if(fifo) //DONE
         {
-            
+            main_mem_page = (main_mem_counter % 4);
         }
         else if(lru)
         {
+            //DO THIS
+        }
 
+        //Process eviction into virtual memory
+        for (int i = 0; i < 16; i++){
+            //find virtual page number of current page to be evicted in main
+            if (p_table[i].page_num == main_mem_page && p_table[i].valid_bit == 1){
+                int evicted_page_num = p_table[i].v_page_num;
+                //reset page table for evicted main page
+                p_table[i].dirty_bit = 0;
+                p_table[i].valid_bit = 0;
+                p_table[i].page_num = p_table[i].v_page_num;
+                //store evicted main page in virtual memory
+                for (int j = 0; j < 8; j++){
+                    int curData = main_memory[main_mem_page * 8 + j].data;
+                    virtual_memory[evicted_page_num * 8 + j].data = curData;
+                }
+                break;
+            }
         }
     }
+    //Regardless of eviction or not, we load in from the virtual memory
+    //Probably could be in the if block but does not hurt to be after it
+
+    //Set values in main memory from virtual memory
+    for (int i = 0; i < 8; i++){
+        int curData = virtual_memory[virtual_page * 8 + i].data;
+        main_memory[main_mem_page * 8 + i].data = curData;
+    }
+    
+    //moved logic found in read and write to here
+    //set corresponding main mem page number to virtual page and set valid bit to 1 (active in main memory)
+    p_table[virtual_page].page_num = main_mem_page;
+    p_table[virtual_page].valid_bit = 1;
+    main_mem_counter++;
 }
 
 // right now input is routed to call these functions, these print statements are for your understanding
@@ -71,10 +112,7 @@ void read(int vAddress){
     {
         //this means that the page hasn't been loaded from main_memory
         //causes page fault 
-        pageFault(vAddress);
-        p_table[virtual_page].valid_bit = 1;
-        p_table[virtual_page].page_num = main_mem_counter;
-        main_mem_counter++;
+        pageFault(virtual_page);
     }
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
     //gets the address from the main memory page and reads it out
@@ -88,10 +126,7 @@ void write(int vAddress, int num){
     {
         //this means that the page hasn't been loaded from main_memory
         //causes page fault, we can't write into memory
-        pageFault(vAddress);
-        p_table[virtual_page].valid_bit = 1;
-        p_table[virtual_page].page_num = main_mem_counter;
-        main_mem_counter++;
+        pageFault(virtual_page);
     }
     p_table[virtual_page].dirty_bit = 1; //since we are writing into it
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
@@ -104,8 +139,6 @@ void write(int vAddress, int num){
 // 16 - 23: 2
 // 24 - 31 : 3 
 void showmain(int ppn){
-    // 0 + 8(ppn) = start value
-    //not sure if this is right
     if(ppn>= 0 && ppn<=3){
         int start = 8 * (ppn);
         for(int i = start; i<start+8; i++)
@@ -123,7 +156,6 @@ void showptable(){ //DONE
         printf("%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num);
     }
 }
-
 
 //Handle user input
 void loop() { //DONE
