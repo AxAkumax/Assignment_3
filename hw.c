@@ -222,7 +222,7 @@ void loop() { //DONE
         token = strtok(input, " ");
         if (strcmp(token, "quit") == 0){
             free(lru_queue);
-            exit(0);
+            return;
         }
         else if (strcmp(token, "read") == 0){
             token = strtok(NULL, " ");
