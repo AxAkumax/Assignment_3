@@ -1,0 +1,10 @@
+LRU
+write 7 200
+read 9
+write 25 4
+write 10 3
+read 33
+write 57 4
+write 94 81
+showptable
+quit

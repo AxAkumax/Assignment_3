@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 struct Memory {
  int address, data;
@@ -8,12 +9,17 @@ struct Memory {
 struct PageTable {
  int v_page_num, valid_bit, dirty_bit, page_num; //, time_stamp; this was in discussion code but not in any instructions
 };
+
 struct Memory main_memory[32];
 struct Memory virtual_memory[128];
 struct PageTable p_table[16];
+int* lru_queue;
 
 int fifoCounter = 0;
 int fifo = 0, lru = 0;
+int lru_counter = 0; //#of values assigned
+int track = 0;
+int lru_check[16] = {0}; //used in lru
 int main_mem_counter = 0; //keeps track of which main memory page to load to for given virtual address
 
 //Main calls this so we can initialize whatever we need here
@@ -41,12 +47,17 @@ void init(){
 } 
 
 //UNUSED DEBUG FUNCTION THAT PRINTS FIRST 51 items of virtual memory
-void printVMemory(){
-    for(int i = 0; i < 51; i++){
-        printf("%d: %d\n", virtual_memory[i].address, virtual_memory[i].data);
-    }
-}
-
+// void printVMemory(){
+//     for(int i = 0; i < 51; i++){
+//         printf("%d: %d\n", virtual_memory[i].address, virtual_memory[i].data);
+//     }
+// }
+// void showlru(){
+//     for(int i = 0; i<lru_counter; i++){
+//         printf("%d ", lru_queue[lru_counter]);
+//     }
+//     printf("\n");
+// }
 
 void pageFault(int virtual_page){
     printf("A Page Fault Has Occurred\n");
@@ -65,7 +76,34 @@ void pageFault(int virtual_page){
         }
         else if(lru)
         {
-            //DO THIS
+            //lru_check is a dictionary that keeps track of the page occurances
+            if(track == 0){
+                for(int i=track; i<lru_counter; i++){
+                    lru_check[lru_queue[i]]++;
+                }
+            }
+            int min = INT_MAX;
+            int vpage_num = -1;
+            for(int i = 0; i<16; i++)
+            {
+                if(lru_check[i]>0 && lru_check[i]<min)
+                {
+                    min = lru_check[i];
+                    vpage_num = i;
+                }
+            }
+            int page = vpage_num;
+            int location = lru_counter;
+            // if not recent and least used so it is usually in the beginning
+            for(int i=track; i<lru_counter; i++){
+                if(i<location && lru_check[lru_queue[i]]==min){
+                    location = i;
+                    page = lru_queue[i];
+                }
+            }
+            main_mem_page = p_table[page].page_num;
+            lru_check[page]--;
+            track++;
         }
 
         //Process eviction into virtual memory
@@ -116,7 +154,16 @@ void read(int vAddress){
     }
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
     //gets the address from the main memory page and reads it out
-    int value = main_memory[p_table[virtual_page].page_num*8 + main_memory_address].data;
+
+    int page = p_table[virtual_page].page_num*8 + main_memory_address;
+    int value = main_memory[page].data;
+
+    lru_queue[lru_counter] = virtual_page;
+    lru_counter++;
+    if(lru_counter > 9)
+    {
+        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
+    }
     printf("%d\n", value);
 }
 
@@ -130,7 +177,15 @@ void write(int vAddress, int num){
     }
     p_table[virtual_page].dirty_bit = 1; //since we are writing into it
     int main_memory_address = vAddress - 8*virtual_page; //page_num gives us starting page num
-    main_memory[p_table[virtual_page].page_num*8 + main_memory_address].data = num;
+
+    int page = p_table[virtual_page].page_num*8 + main_memory_address;
+    main_memory[page].data = num;
+    lru_queue[lru_counter] = virtual_page;
+    lru_counter++;
+    if(lru_counter > 9)
+    {
+        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
+    }
 }
 
 //main memory has 4 pages, each page 8 addresses
@@ -156,7 +211,6 @@ void showptable(){ //DONE
         printf("%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num);
     }
 }
-
 //Handle user input
 void loop() { //DONE
     char input[100];
@@ -167,6 +221,7 @@ void loop() { //DONE
         input[strcspn(input, "\n")] = 0;
         token = strtok(input, " ");
         if (strcmp(token, "quit") == 0){
+            free(lru_queue);
             exit(0);
         }
         else if (strcmp(token, "read") == 0){
@@ -194,6 +249,7 @@ void loop() { //DONE
 
 int main(int argc, char** argv) { //DONE
     //fifo is chosen given no args or if chosen
+    lru_queue = (int*) malloc(10 * sizeof(int));
     if (argv[1] == NULL || strcmp (argv[1], "FIFO") == 0){
         fifo = 1;
     }

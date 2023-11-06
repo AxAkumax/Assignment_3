@@ -1,0 +1,10 @@
+FIFO
+write 9 30
+write 17 34
+read 3
+write 3 4
+showmain 1
+read 35
+write 16 17
+showptable
+quit

@@ -1,0 +1,12 @@
+write 5 4
+read 12
+write 12 3
+showmain 0
+read 35
+write 46 8
+showmain 5
+read 80
+write 5 3
+read 2
+write 15 6
+quit
