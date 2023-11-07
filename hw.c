@@ -13,7 +13,7 @@ struct PageTable {
 struct Memory main_memory[32];
 struct Memory virtual_memory[128];
 struct PageTable p_table[16];
-int* lru_queue;
+int lru_queue[10];
 
 int fifoCounter = 0;
 int fifo = 0, lru = 0;
@@ -64,9 +64,6 @@ void insert_queue(int virtual_page){
             lru_queue[i] = lru_queue[i+1];
         }
         lru_queue[lru_counter-1] = virtual_page;
-    }
-    if(lru_counter > 9){
-        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
     }
 }
 
@@ -210,7 +207,6 @@ void loop() { //DONE
         input[strcspn(input, "\n")] = 0;
         token = strtok(input, " ");
         if (strcmp(token, "quit") == 0){
-            free(lru_queue);
             return;
         }
         else if (strcmp(token, "read") == 0){
@@ -238,7 +234,6 @@ void loop() { //DONE
 
 int main(int argc, char** argv) { //DONE
     //fifo is chosen given no args or if chosen
-    lru_queue = (int*) malloc(10 * sizeof(int));
     if (argv[1] == NULL || strcmp (argv[1], "FIFO") == 0){
         fifo = 1;
     }
