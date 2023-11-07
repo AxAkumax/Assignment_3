@@ -18,8 +18,6 @@ int* lru_queue;
 int fifoCounter = 0;
 int fifo = 0, lru = 0;
 int lru_counter = 0; //#of values assigned
-int track = 0;
-int lru_check[16] = {0}; //used in lru
 int main_mem_counter = 0; //keeps track of which main memory page to load to for given virtual address
 
 //Main calls this so we can initialize whatever we need here
@@ -45,6 +43,32 @@ void init(){
         p_table[i].page_num = i;
     }
 } 
+void insert_queue(int virtual_page){
+    if(lru_counter==0){
+        lru_queue[0] = virtual_page;
+        lru_counter++;
+        return;
+    }
+    int index = -1;
+    for(int i = 0; i<lru_counter; i++){
+        if(lru_queue[i]==virtual_page){
+            index=i;
+        }
+    }
+    if(index==-1){
+        lru_queue[lru_counter] = virtual_page;
+        lru_counter++; //add to top of the queue
+    }
+    else{ //move element to top of the queue
+        for(int i=index; i<lru_counter-1; i++){
+            lru_queue[i] = lru_queue[i+1];
+        }
+        lru_queue[lru_counter-1] = virtual_page;
+    }
+    if(lru_counter > 9){
+        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
+    }
+}
 
 //UNUSED DEBUG FUNCTION THAT PRINTS FIRST 51 items of virtual memory
 // void printVMemory(){
@@ -54,7 +78,7 @@ void init(){
 // }
 // void showlru(){
 //     for(int i = 0; i<lru_counter; i++){
-//         printf("%d ", lru_queue[lru_counter]);
+//         printf("%d ", lru_queue[i]);
 //     }
 //     printf("\n");
 // }
@@ -74,38 +98,13 @@ void pageFault(int virtual_page){
         {
             main_mem_page = (main_mem_counter % 4);
         }
-        else if(lru)
-        {
-            //lru_check is a dictionary that keeps track of the page occurances
-            if(track == 0){
-                for(int i=track; i<lru_counter; i++){
-                    lru_check[lru_queue[i]]++;
-                }
+        else if(lru){
+            main_mem_page = p_table[lru_queue[0]].page_num;
+            for(int i = 1; i<lru_counter; i++){
+                lru_queue[i-1] = lru_queue[i];
             }
-            int min = INT_MAX;
-            int vpage_num = -1;
-            for(int i = 0; i<16; i++)
-            {
-                if(lru_check[i]>0 && lru_check[i]<min)
-                {
-                    min = lru_check[i];
-                    vpage_num = i;
-                }
-            }
-            int page = vpage_num;
-            int location = lru_counter;
-            // if not recent and least used so it is usually in the beginning
-            for(int i=track; i<lru_counter; i++){
-                if(i<location && lru_check[lru_queue[i]]==min){
-                    location = i;
-                    page = lru_queue[i];
-                }
-            }
-            main_mem_page = p_table[page].page_num;
-            lru_check[page]--;
-            track++;
+            lru_counter--;
         }
-
         //Process eviction into virtual memory
         for (int i = 0; i < 16; i++){
             //find virtual page number of current page to be evicted in main
@@ -158,12 +157,7 @@ void read(int vAddress){
     int page = p_table[virtual_page].page_num*8 + main_memory_address;
     int value = main_memory[page].data;
 
-    lru_queue[lru_counter] = virtual_page;
-    lru_counter++;
-    if(lru_counter > 9)
-    {
-        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
-    }
+    insert_queue(virtual_page);
     printf("%d\n", value);
 }
 
@@ -180,12 +174,7 @@ void write(int vAddress, int num){
 
     int page = p_table[virtual_page].page_num*8 + main_memory_address;
     main_memory[page].data = num;
-    lru_queue[lru_counter] = virtual_page;
-    lru_counter++;
-    if(lru_counter > 9)
-    {
-        lru_queue = (int *)realloc(lru_queue, 20 * sizeof(int));
-    }
+    insert_queue(virtual_page);
 }
 
 //main memory has 4 pages, each page 8 addresses
